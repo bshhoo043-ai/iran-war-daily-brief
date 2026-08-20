@@ -78,13 +78,35 @@ def get_recent_entries(hours=30):
     return results[:25]
 
 def create_html(entries):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M KST")
+    now = datetime.now().strftime("%d / %B / %Y")
+    
     html = f"""
     <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto;">
-        <h2 style="color: #c0392b;">🇮🇷 Iran War / Hormuz Daily Brief</h2>
-        <p><b>Generated:</b> {now}</p>
-        <hr>
+    <body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 720px; margin: 0 auto; background: #f8f9fa;">
+        
+        <!-- 헤더 -->
+        <div style="background: white; padding: 25px 30px; border-bottom: 3px solid #c0392b; margin-bottom: 25px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="vertical-align: middle;">
+                        <div style="font-size: 22px; font-weight: 700; color: #1a5276;">
+                            시그마해운(주)
+                        </div>
+                        <div style="font-size: 12px; color: #7f8c8d; letter-spacing: 1px;">
+                            SIGMA SHIPPING CORPORATION
+                        </div>
+                    </td>
+                    <td style="text-align: right; vertical-align: middle;">
+                        <div style="font-size: 20px; font-weight: 700; color: #c0392b;">
+                            IRAN WAR STATUS
+                        </div>
+                        <div style="font-size: 14px; color: #555; margin-top: 3px;">
+                            ({now})
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
     """
 
     if not entries:
