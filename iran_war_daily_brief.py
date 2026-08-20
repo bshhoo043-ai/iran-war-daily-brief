@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from datetime import datetime, timedelta, timezone
 from dateutil import parser as date_parser
 import hashlib
-import openai
+from openai import OpenAI   # ← 이 부분 중요
 
 # ====================== 설정 ======================
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL")
@@ -14,7 +14,7 @@ SENDER_APP_PASSWORD = os.environ.get("SENDER_APP_PASSWORD")
 RECEIVER_EMAIL = os.environ.get("RECEIVER_EMAIL")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)   # ← 이 부분 중요
 
 KEYWORDS = [
     "iran", "hormuz", "strait of hormuz", "tehran",
@@ -43,7 +43,7 @@ def summarize_korean(title, summary):
 제목: {title}
 내용: {summary}
 """
-        response = openai.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
