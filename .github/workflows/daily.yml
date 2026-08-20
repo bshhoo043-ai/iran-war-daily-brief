@@ -1,0 +1,32 @@
+name: Iran War Daily Brief
+
+on:
+  schedule:
+    # 매일 한국시간 오전 7시 (UTC 22:00 전날)
+    - cron: '0 22 * * *'
+  workflow_dispatch:  # 수동 실행 버튼도 생김
+
+jobs:
+  send-brief:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run the script
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_APP_PASSWORD: ${{ secrets.SENDER_APP_PASSWORD }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        run: python iran_war_daily_brief.py
