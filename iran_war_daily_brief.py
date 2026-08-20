@@ -6,11 +6,15 @@ from email.mime.text import MIMEText
 from datetime import datetime, timedelta, timezone
 from dateutil import parser as date_parser
 import hashlib
+import openai
 
-# ====================== 설정 (Secrets에서 가져옴) ======================
+# ====================== 설정 ======================
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL")
 SENDER_APP_PASSWORD = os.environ.get("SENDER_APP_PASSWORD")
 RECEIVER_EMAIL = os.environ.get("RECEIVER_EMAIL")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+openai.api_key = OPENAI_API_KEY
 
 KEYWORDS = [
     "iran", "hormuz", "strait of hormuz", "tehran",
@@ -29,6 +33,26 @@ FEEDS = [
 def is_relevant(title, summary=""):
     text = (title + " " + summary).lower()
     return any(kw in text for kw in KEYWORDS)
+
+def summarize_korean(title, summary):
+    try:
+        prompt = f"""다음 뉴스 제목과 요약을 한국어로 4~5줄 정도로 자연스럽게 요약해줘.
+해운/원유 시장 관점에서 중요한 내용이 있으면 함께 언급해.
+불필요한 인사말이나 설명 없이 요약 내용만 작성해.
+
+제목: {title}
+내용: {summary}
+"""
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=300
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Summary error: {e}")
+        return summary[:200] + "..."
 
 def get_recent_entries(hours=30):
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
@@ -59,7 +83,7 @@ def get_recent_entries(hours=30):
                 if published and published < cutoff:
                     continue
 
-                summary = entry.get("summary", "")[:300]
+                summary = entry.get("summary", "")[:400]
                 if not is_relevant(title, summary):
                     continue
 
@@ -75,7 +99,7 @@ def get_recent_entries(hours=30):
             print(f"Error fetching {source}: {e}")
 
     results.sort(key=lambda x: x["published"] or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
-    return results[:25]
+    return results[:12]  # 요약 때문에 개수를 조금 줄임
 
 def create_html(entries):
     now = datetime.now().strftime("%d / %B / %Y")
@@ -107,24 +131,33 @@ def create_html(entries):
     """
 
     if not entries:
-        html += "<p>No relevant news found in the last 24-30 hours.</p>"
+        html += "<p>최근 관련 뉴스가 없습니다.</p>"
     else:
         for i, e in enumerate(entries, 1):
             pub = e["published"].strftime("%m-%d %H:%M UTC") if e["published"] else "N/A"
+            korean_summary = summarize_korean(e["title"], e["summary"])
+            
             html += f"""
-            <div style="margin-bottom: 22px;">
-                <h3 style="margin-bottom: 4px; font-size: 17px;">{i}. {e['title']}</h3>
-                <p style="margin: 0; color: #666; font-size: 13px;">{e['source']} | {pub}</p>
-                <p style="margin: 8px 0; font-size: 14px;">{e['summary'][:280]}...</p>
-                <a href="{e['link']}" style="color: #0066cc; font-size: 13px;">Read full article →</a>
+            <div style="background: white; padding: 18px 22px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                <div style="font-size: 12px; color: #888; margin-bottom: 6px;">
+                    {e['source']} | {pub}
+                </div>
+                <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #222;">
+                    {i}. {e['title']}
+                </h3>
+                <div style="font-size: 14px; color: #444; line-height: 1.7; white-space: pre-line;">
+                    {korean_summary}
+                </div>
+                <div style="margin-top: 12px;">
+                    <a href="{e['link']}" style="color: #0066cc; font-size: 13px; text-decoration: none;">원문 보기 →</a>
+                </div>
             </div>
-            <hr style="border: none; border-top: 1px solid #eee;">
             """
 
     html += """
         <br>
-        <p style="font-size: 12px; color: #888;">
-            Automated brief focused on Iran conflict, Strait of Hormuz, and related oil/shipping developments.
+        <p style="font-size: 12px; color: #888; text-align: center;">
+            시그마해운(주) | Iran / Hormuz Automated Daily Brief
         </p>
     </body>
     </html>
